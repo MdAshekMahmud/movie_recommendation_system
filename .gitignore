@@ -1,0 +1,14 @@
+# Ignore virtual environments
+venv/
+
+# Ignore Python cache files
+__pycache__/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Model artefacts
+artifacts/*.pkl
+
+# Miscellaneous system files
+.DS_Store
