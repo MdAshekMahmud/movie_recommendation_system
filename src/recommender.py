@@ -1,62 +1,75 @@
-"""
-Helper functions for recommending similar movies.
-
-You can import the `recommend` function directly to get a list of titles
-corresponding to the most similar movies, given a preprocessed dataframe and
-precomputed similarity matrix.  There is also a convenience function
-`load_artefacts` which reads the pickles from disk.
-"""
-
-from __future__ import annotations
-
-from typing import Iterable, List, Tuple
 import os
 import pickle
-
 import pandas as pd
 
 
-def load_artefacts(artefact_dir: str = 'artifacts') -> Tuple[pd.DataFrame, list[list[float]]]:
-    """Load the processed movies dataframe and similarity matrix from pickle files.
-
-    Args:
-        artefact_dir: Directory containing `movies.pkl` and `similarity.pkl`.
-
-    Returns:
-        A tuple `(movies, similarity)` where `movies` is a pandas DataFrame and
-        `similarity` is a 2D list or numpy array of cosine similarity scores.
+def load_artifacts(artifacts_dir="artifacts"):
     """
-    movies_path = os.path.join(artefact_dir, 'movies.pkl')
-    similarity_path = os.path.join(artefact_dir, 'similarity.pkl')
-    with open(movies_path, 'rb') as f:
-        movies = pickle.load(f)
-    with open(similarity_path, 'rb') as f:
-        similarity = pickle.load(f)
+    Load movies dataframe and similarity matrix from the artifacts folder.
+    """
+    movies_path = os.path.join(artifacts_dir, "movies.pkl")
+    similarity_path = os.path.join(artifacts_dir, "similarity.pkl")
+
+    with open(movies_path, "rb") as file:
+        movies = pickle.load(file)
+
+    with open(similarity_path, "rb") as file:
+        similarity = pickle.load(file)
+
+    movies = movies.reset_index(drop=True)
+
     return movies, similarity
 
 
-def recommend(movie_title: str, movies: pd.DataFrame, similarity: Iterable[Iterable[float]], top_n: int = 5) -> List[str]:
-    """Return the titles of the most similar movies.
+def search_movie(query, movies, limit=20):
+    """
+    Search movie titles using partial text.
+    """
+    query = query.strip().lower()
 
-    Args:
-        movie_title: The title of the movie for which to find recommendations.
-        movies: DataFrame containing at least the columns `title` and `movie_id`.
-        similarity: Cosine similarity matrix aligned with the order of `movies`.
-        top_n: Number of recommendations to return.
+    results = movies[movies["title"].str.lower().str.contains(query, na=False)]
+
+    return results[["title"]].head(limit)
+
+
+def recommend(movie_name, movies, similarity, top_n=5):
+    """
+    Recommend similar movies based on cosine similarity.
+
+    Parameters:
+        movie_name: selected movie title
+        movies: dataframe containing movie_id, title, tags
+        similarity: cosine similarity matrix
+        top_n: number of recommendations
 
     Returns:
-        A list of movie titles recommended in descending order of similarity.
-        If the movie title is not found, an empty list is returned.
+        DataFrame containing recommended movie titles and similarity scores
     """
-    # Normalise the title matching to avoid case mismatches
-    matches = movies[movies['title'].str.lower() == movie_title.strip().lower()]
+    movie_name_clean = movie_name.strip().lower()
+
+    matches = movies[movies["title"].str.lower() == movie_name_clean]
+
     if matches.empty:
-        return []
-    idx = matches.index[0]
-    # Enumerate distances and sort by similarity (largest first)
-    distances = list(enumerate(similarity[idx]))
-    distances = sorted(distances, key=lambda x: x[1], reverse=True)
-    # Skip the first one (the movie itself)
-    recommended_indices = [i for i, _ in distances[1: top_n + 1]]
-    recommended_titles = movies.iloc[recommended_indices]['title'].tolist()
-    return recommended_titles
+        return pd.DataFrame(columns=["movie", "similarity_score"])
+
+    movie_index = matches.index[0]
+
+    similarity_scores = list(enumerate(similarity[movie_index]))
+
+    sorted_scores = sorted(similarity_scores, reverse=True, key=lambda x: x[1])
+
+    recommendations = []
+
+    for item in sorted_scores[1 : top_n + 1]:
+        recommended_movie_index = item[0]
+        recommended_title = movies.iloc[recommended_movie_index]["title"]
+        similarity_score = item[1]
+
+        recommendations.append(
+            {
+                "movie": recommended_title,
+                "similarity_score": round(float(similarity_score), 4),
+            }
+        )
+
+    return pd.DataFrame(recommendations)
