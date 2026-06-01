@@ -17,10 +17,14 @@ Thumbs.db
 data/*.csv
 data/*.zip
 
-# Large generated artifacts
+# Large local artifacts
 artifacts/*.pkl
-artifacts/*.joblib
-artifacts/*.npy
+artifacts/vectors*
+artifacts/count_vectorizer*
 
-# Streamlit cache
+# Keep compressed deployment artifacts
+!artifacts/movies_compressed.joblib
+!artifacts/similarity_compressed.joblib
+
+# Streamlit secrets
 .streamlit/secrets.toml

@@ -1,20 +1,42 @@
 import os
 import pickle
+import joblib
 import pandas as pd
 
 
 def load_artifacts(artifacts_dir="artifacts"):
     """
-    Load movies dataframe and similarity matrix from the artifacts folder.
+    Load movies dataframe and similarity matrix.
+
+    The function first tries to load compressed deployment artifacts.
+    If they are not found, it falls back to the original pickle files.
     """
-    movies_path = os.path.join(artifacts_dir, "movies.pkl")
-    similarity_path = os.path.join(artifacts_dir, "similarity.pkl")
 
-    with open(movies_path, "rb") as file:
-        movies = pickle.load(file)
+    compressed_movies_path = os.path.join(artifacts_dir, "movies_compressed.joblib")
+    compressed_similarity_path = os.path.join(
+        artifacts_dir, "similarity_compressed.joblib"
+    )
 
-    with open(similarity_path, "rb") as file:
-        similarity = pickle.load(file)
+    pickle_movies_path = os.path.join(artifacts_dir, "movies.pkl")
+    pickle_similarity_path = os.path.join(artifacts_dir, "similarity.pkl")
+
+    if os.path.exists(compressed_movies_path) and os.path.exists(
+        compressed_similarity_path
+    ):
+        movies = joblib.load(compressed_movies_path)
+        similarity = joblib.load(compressed_similarity_path)
+
+    elif os.path.exists(pickle_movies_path) and os.path.exists(pickle_similarity_path):
+        with open(pickle_movies_path, "rb") as file:
+            movies = pickle.load(file)
+
+        with open(pickle_similarity_path, "rb") as file:
+            similarity = pickle.load(file)
+
+    else:
+        raise FileNotFoundError(
+            "No artifact files found. Expected compressed joblib files or pickle files inside artifacts/."
+        )
 
     movies = movies.reset_index(drop=True)
 
@@ -25,6 +47,7 @@ def search_movie(query, movies, limit=20):
     """
     Search movie titles using partial text.
     """
+
     query = query.strip().lower()
 
     results = movies[movies["title"].str.lower().str.contains(query, na=False)]
@@ -35,16 +58,8 @@ def search_movie(query, movies, limit=20):
 def recommend(movie_name, movies, similarity, top_n=5):
     """
     Recommend similar movies based on cosine similarity.
-
-    Parameters:
-        movie_name: selected movie title
-        movies: dataframe containing movie_id, title, tags
-        similarity: cosine similarity matrix
-        top_n: number of recommendations
-
-    Returns:
-        DataFrame containing recommended movie titles and similarity scores
     """
+
     movie_name_clean = movie_name.strip().lower()
 
     matches = movies[movies["title"].str.lower() == movie_name_clean]
