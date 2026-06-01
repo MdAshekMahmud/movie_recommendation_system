@@ -1,14 +1,26 @@
-# Ignore virtual environments
+# Virtual environment
 venv/
+.env
 
-# Ignore Python cache files
+# Python cache
 __pycache__/
+*.pyc
 
-# Jupyter notebook checkpoints
+# Jupyter checkpoints
 .ipynb_checkpoints/
 
-# Model artefacts
-artifacts/*.pkl
-
-# Miscellaneous system files
+# System files
 .DS_Store
+Thumbs.db
+
+# Raw datasets
+data/*.csv
+data/*.zip
+
+# Large generated artifacts
+artifacts/*.pkl
+artifacts/*.joblib
+artifacts/*.npy
+
+# Streamlit cache
+.streamlit/secrets.toml
