@@ -1,95 +1,392 @@
 # Movie Recommendation System
 
-This repository contains a small, self‑contained example of a **content‑based movie recommendation system**. The goal of the project is to demonstrate how to build a recommendation pipeline from raw data, through feature engineering and vectorisation, to deployment as a simple web application. While the included code is ready to run, the full TMDB data files are not distributed here due to size and licensing restrictions—please follow the instructions below to download them yourself.
+A content-based movie recommendation system built with Python, Pandas, Scikit-learn, cosine similarity, and Streamlit.
 
-## Project layout
+The app recommends similar movies based on movie overview, genres, keywords, cast, and director information. Users can select a movie from a dropdown and receive a list of similar movies.
 
-The repository is organised to separate raw data, source code, notebooks, a simple web application and generated artefacts. A typical layout after you download the data and generate the model artefacts looks like this:
+## Project Overview
 
+This project uses the TMDB 5000 Movie Dataset to build a content-based recommendation system.
+
+Unlike a rating-based recommendation system, this project does not depend on user ratings or user behavior. Instead, it compares movie content features and recommends movies with similar textual profiles.
+
+Example:
+
+If a user selects `Avatar`, the system recommends movies that are similar in terms of genre, story keywords, cast, director, and overview.
+
+## Project Type
+
+Content-Based Recommendation System
+
+## Technologies Used
+
+- Python
+- NumPy
+- Pandas
+- Scikit-learn
+- NLTK
+- Streamlit
+- Joblib
+- Pickle
+- GitHub
+
+## Machine Learning Concepts Used
+
+- Data cleaning
+- Feature engineering
+- Text preprocessing
+- Stemming
+- CountVectorizer
+- Bag-of-words representation
+- Cosine similarity
+- Similarity-based recommendation
+
+## Dataset
+
+This project uses the TMDB 5000 Movie Dataset.
+
+Required files:
+
+```text
+tmdb_5000_movies.csv
+tmdb_5000_credits.csv
 ```
+
+Place both files inside the `data/` folder:
+
+```text
+data/
+├── tmdb_5000_movies.csv
+└── tmdb_5000_credits.csv
+```
+
+The raw dataset files are not included in this repository because they are large.
+
+## Project Structure
+
+```text
 movie_recommendation_system/
 │
-├── data/
-│   ├── tmdb_5000_movies.csv        # raw TMDB movies dataset (download separately)
-│   └── tmdb_5000_credits.csv       # raw TMDB credits dataset (download separately)
-│
-├── notebooks/
-│   ├── 01_dataset_understanding.ipynb              # Explore dataset shape, columns, missing values, and sample rows
-│   ├── 02_data_cleaning.ipynb                      # Clean missing values, duplicate values, and unnecessary columns
-│   ├── 03_feature_engineering.ipynb                # Select useful features and create combined movie metadata
-│   ├── 04_text_preprocessing.ipynb                 # Clean text, remove spaces, apply stemming, and prepare tags
-│   ├── 05_vectorization.ipynb                      # Convert text tags into numerical vectors using CountVectorizer
-│   ├── 06_similarity_calculation.ipynb             # Calculate cosine similarity between movie vectors
-│   ├── 07_recommendation_function.ipynb            # Build and test the movie recommendation function
-│   └── 08_model_saving_artifact_management.ipynb   # Save movies.pkl and similarity.pkl inside artifacts folder
-│
-├── src/
-│   ├── preprocessing.py            # functions to clean and merge the TMDB data
-│   ├── recommender.py              # recommendation helper functions
-│   └── __init__.py                 # marks the directory as a package
-│
 ├── app/
-│   └── app.py                      # Streamlit application
+│   └── app.py
 │
 ├── artifacts/
-│   ├── movies.pkl                  # processed movie metadata (generated)
-│   └── similarity.pkl              # cosine similarity matrix (generated)
+│   ├── movies_compressed.joblib
+│   └── similarity_compressed.joblib
 │
-├── requirements.txt                # Python dependencies
-├── .gitignore                      # files to ignore in version control
-└── README.md                       # this file
+├── data/
+│   └── .gitkeep
+│
+├── notebooks/
+│   ├── 01_dataset_understanding.ipynb
+│   ├── 02_data_cleaning.ipynb
+│   ├── 03_feature_engineering.ipynb
+│   ├── 04_text_preprocessing.ipynb
+│   ├── 05_vectorization.ipynb
+│   ├── 06_similarity_calculation.ipynb
+│   ├── 07_recommendation_function.ipynb
+│   └── 08_model_saving_artifact_management.ipynb
+│
+├── src/
+│   ├── __init__.py
+│   ├── preprocessing.py
+│   └── recommender.py
+│
+├── prepare_deployment_artifacts.py
+├── test_artifacts.py
+├── test_recommender.py
+├── requirements.txt
+├── README.md
+└── .gitignore
 ```
 
-### Data files
+## How the System Works
 
-This project uses the **TMDB 5000 Movie Dataset** (two CSV files). These are not included in the repository. You can download them from [Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata). The two files you need are:
+The project follows this pipeline:
 
-- `tmdb_5000_movies.csv`
-- `tmdb_5000_credits.csv`
+```text
+Raw movie data
+↓
+Data cleaning
+↓
+Feature selection
+↓
+Feature engineering
+↓
+Text preprocessing
+↓
+Vectorization
+↓
+Cosine similarity calculation
+↓
+Recommendation function
+↓
+Streamlit web app
+```
 
-Place these files in the `data/` directory before running any processing. If you prefer not to sign up to Kaggle you can often find mirrors of these files on GitHub; however these may be out of date.
+## Feature Engineering
 
-### Quick start
+The original dataset contains complex columns such as `genres`, `keywords`, `cast`, and `crew`.
 
-1. **Create and activate a virtual environment** (recommended):
+These columns are stored as stringified lists of dictionaries.
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate   # on Windows use `venv\Scripts\activate`
-   ```
+Example:
 
-2. **Install the project dependencies**:
+```text
+[{"id": 28, "name": "Action"}, {"id": 12, "name": "Adventure"}]
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+The project extracts only the useful text values.
 
-3. **Download the data** and place the two CSV files into the `data/` directory.
+Example:
 
-4. **Generate the artefacts**. From the project root run the preprocessing script. It will read the raw CSV files, clean and merge the data, create text features (tags) and calculate cosine similarities. The resulting pickled artefacts are saved into the `artifacts/` directory.
+```text
+Action Adventure
+```
 
-   ```bash
-   python -m src.preprocessing --movies data/tmdb_5000_movies.csv \
-                               --credits data/tmdb_5000_credits.csv \
-                               --out-dir artifacts
-   ```
+For each movie, the system creates a combined `tags` column using:
 
-5. **Launch the application**. With the artefacts in place you can run the Streamlit app to try out the recommendation system. The app will load the pickles and present a simple dropdown for movie selection.
+```text
+overview + genres + keywords + top 3 cast members + director
+```
 
-   ```bash
-   streamlit run app/app.py
-   ```
+Example final tag:
 
-6. **Open in your browser**. When Streamlit starts it will display a local URL (usually `http://localhost:8501`). Open this address in your web browser to interact with the recommender.
+```text
+action adventure fantasy sciencefiction alien planet samworthington zoesaldana jamescameron
+```
 
-### Notebooks
+## Text Preprocessing
 
-The `notebooks/01_dataset_understanding.ipynb` notebook walks through the exploratory data analysis performed on the TMDB 5000 Movie Dataset. It inspects the shapes of the dataframes, the column names, missing values and a few example rows. This is a good place to start if you are unfamiliar with the dataset. Use Jupyter or VS Code to open and run the notebook.
+The `tags` column is converted to lowercase and processed using stemming.
 
-### Sample artefacts
+Example:
 
-The `artifacts/` directory in this repository contains a small, toy example `movies.pkl` and `similarity.pkl` generated from a manually crafted sample dataset of ten well‑known movies. These files allow you to run the Streamlit app without downloading the full TMDB data, but the recommendations will only use the sample movies. When you generate new artefacts from the full dataset they will overwrite these sample files.
+```text
+loving, loved, loves → love
+running, runs → run
+adventure → adventur
+```
 
-### License
+This helps reduce word variation before vectorization.
 
-This project is provided for educational purposes. The TMDB dataset is subject to its own license; please review the terms on the Kaggle page before using the data in a production environment.
+## Vectorization
+
+The project uses `CountVectorizer` to convert movie tags into numerical vectors.
+
+```python
+CountVectorizer(max_features=5000, stop_words="english")
+```
+
+This converts text into a bag-of-words representation.
+
+Example:
+
+```text
+action adventure space alien
+```
+
+becomes a numerical vector that can be compared mathematically.
+
+## Similarity Calculation
+
+The system uses cosine similarity to compare movie vectors.
+
+Cosine similarity measures how close two movie vectors are.
+
+A higher similarity score means the movies are more similar.
+
+## Recommendation Logic
+
+When a user selects a movie:
+
+```text
+1. The system finds the selected movie index.
+2. It gets similarity scores for that movie.
+3. It sorts all movies by similarity score.
+4. It skips the selected movie itself.
+5. It returns the top similar movies.
+```
+
+## How to Run Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/movie-recommendation-system.git
+cd movie-recommendation-system
+```
+
+### 2. Create a virtual environment
+
+```bash
+python -m venv venv
+```
+
+Activate it.
+
+For Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+For Linux or Mac:
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Add dataset files
+
+Download the TMDB 5000 Movie Dataset and place these files inside the `data/` folder:
+
+```text
+tmdb_5000_movies.csv
+tmdb_5000_credits.csv
+```
+
+### 5. Generate artifacts
+
+```bash
+python src/preprocessing.py
+```
+
+This will generate:
+
+```text
+artifacts/movies.pkl
+artifacts/similarity.pkl
+artifacts/count_vectorizer.pkl
+artifacts/vectors.pkl
+```
+
+### 6. Prepare deployment artifacts
+
+```bash
+python prepare_deployment_artifacts.py
+```
+
+This will generate:
+
+```text
+artifacts/movies_compressed.joblib
+artifacts/similarity_compressed.joblib
+```
+
+### 7. Run the Streamlit app
+
+```bash
+streamlit run app/app.py
+```
+
+Then open the local URL shown in the terminal.
+
+Usually:
+
+```text
+http://localhost:8501
+```
+
+## Test the Project
+
+Test artifact files:
+
+```bash
+python test_artifacts.py
+```
+
+Test recommendation function:
+
+```bash
+python test_recommender.py
+```
+
+## Example Output
+
+Input:
+
+```text
+Avatar
+```
+
+Output:
+
+```text
+1. Aliens
+2. John Carter
+3. Star Trek Into Darkness
+4. Battle: Los Angeles
+5. Titan A.E.
+```
+
+The exact output may vary depending on preprocessing and dataset version.
+
+## Deployment
+
+This project can be deployed using Streamlit Community Cloud.
+
+Deployment entry file:
+
+```text
+app/app.py
+```
+
+The deployed app should use compressed artifacts:
+
+```text
+artifacts/movies_compressed.joblib
+artifacts/similarity_compressed.joblib
+```
+
+Raw dataset files are not required during app usage.
+
+## Limitations
+
+This is a basic content-based recommendation system.
+
+Current limitations:
+
+- It does not use user ratings.
+- It does not learn from user behavior.
+- It does not use collaborative filtering.
+- It depends heavily on text feature quality.
+- It may recommend movies with similar keywords but different audience appeal.
+- The similarity matrix can become large for bigger datasets.
+
+## Future Improvements
+
+Possible improvements:
+
+- Add movie posters using TMDB API.
+- Use TF-IDF instead of CountVectorizer.
+- Use word embeddings or sentence embeddings.
+- Add collaborative filtering.
+- Build a hybrid recommendation system.
+- Add user login and watchlist.
+- Add genre filters.
+- Add popularity-based fallback recommendations.
+- Optimize similarity search using nearest neighbors or FAISS.
+
+## Project Status
+
+Completed.
+
+The project includes:
+
+- Data preprocessing pipeline
+- Recommendation function
+- Streamlit app
+- Test scripts
+- Deployment-ready artifacts
+- GitHub-ready structure
+
+## Author
+
+TANVIR NIBIR
